@@ -145,7 +145,7 @@ exports.mensual = async (req, res) => {
   try {
     // Intento 1: usar total en facturas
     try {
-      const [r] = await db.query('SELECT MONTH(fecha) mes, SUM(total) AS total FROM facturas GROUP BY MONTH(fecha)')
+      const [r] = await db.query('SELECT EXTRACT(MONTH FROM fecha)::int AS mes, SUM(total) AS total FROM facturas GROUP BY EXTRACT(MONTH FROM fecha) ORDER BY mes')
       if (r && r.length) return res.json(r)
     } catch (err) {
       // continuar a siguiente intento
@@ -154,7 +154,7 @@ exports.mensual = async (req, res) => {
     // Intento 2: sumar por detalle_factura
     try {
       const [r2] = await db.query(
-        'SELECT MONTH(f.fecha) AS mes, SUM(df.total_linea) AS total FROM facturas f JOIN detalle_factura df ON f.id_factura=df.id_factura GROUP BY MONTH(f.fecha)'
+        'SELECT EXTRACT(MONTH FROM f.fecha)::int AS mes, SUM(df.total_linea) AS total FROM facturas f JOIN detalle_factura df ON f.id_factura=df.id_factura GROUP BY EXTRACT(MONTH FROM f.fecha) ORDER BY mes'
       )
       if (r2 && r2.length) return res.json(r2)
     } catch (err) {
@@ -162,7 +162,7 @@ exports.mensual = async (req, res) => {
     }
 
     // Intento 3: fallback: conteo por mes
-    const [r3] = await db.query('SELECT MONTH(fecha) mes, COUNT(*) total FROM facturas GROUP BY MONTH(fecha)')
+    const [r3] = await db.query('SELECT EXTRACT(MONTH FROM fecha)::int AS mes, COUNT(*) AS total FROM facturas GROUP BY EXTRACT(MONTH FROM fecha) ORDER BY mes')
     return res.json({ warning: 'No se pudo calcular totales; retornando conteo por mes', data: r3 })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -226,7 +226,7 @@ exports.mensualPorEmpresa = async (req, res) => {
     const id = req.params.id
     // Intento 1: usar total en facturas
     try {
-      const [r] = await db.query('SELECT MONTH(fecha) mes, SUM(total) AS total FROM facturas WHERE id_empresa = ? GROUP BY MONTH(fecha)', [id])
+      const [r] = await db.query('SELECT EXTRACT(MONTH FROM fecha)::int AS mes, SUM(total) AS total FROM facturas WHERE id_empresa = $1 GROUP BY EXTRACT(MONTH FROM fecha) ORDER BY mes', [id])
       if (r && r.length) return res.json(r)
     } catch (err) {
       // continuar
@@ -235,7 +235,7 @@ exports.mensualPorEmpresa = async (req, res) => {
     // Intento 2: sumar por detalle_factura
     try {
       const [r2] = await db.query(
-        'SELECT MONTH(f.fecha) AS mes, SUM(df.total_linea) AS total FROM facturas f JOIN detalle_factura df ON f.id_factura=df.id_factura WHERE f.id_empresa = ? GROUP BY MONTH(f.fecha)',
+        'SELECT EXTRACT(MONTH FROM f.fecha)::int AS mes, SUM(df.total_linea) AS total FROM facturas f JOIN detalle_factura df ON f.id_factura=df.id_factura WHERE f.id_empresa = $1 GROUP BY EXTRACT(MONTH FROM f.fecha) ORDER BY mes',
         [id]
       )
       if (r2 && r2.length) return res.json(r2)
@@ -244,7 +244,7 @@ exports.mensualPorEmpresa = async (req, res) => {
     }
 
     // Fallback: conteo por mes
-    const [r3] = await db.query('SELECT MONTH(fecha) mes, COUNT(*) total FROM facturas WHERE id_empresa = ? GROUP BY MONTH(fecha)', [id])
+    const [r3] = await db.query('SELECT EXTRACT(MONTH FROM fecha)::int AS mes, COUNT(*) AS total FROM facturas WHERE id_empresa = $1 GROUP BY EXTRACT(MONTH FROM fecha) ORDER BY mes', [id])
     return res.json({ warning: 'No se pudo calcular totales; retornando conteo por mes', data: r3 })
   } catch (err) {
     res.status(500).json({ error: err.message })
