@@ -1,8 +1,7 @@
 -- Schema para la plataforma de facturación (Grupo 5)
 -- Crear base de datos y tablas mínimas necesarias
 
-CREATE DATABASE IF NOT EXISTS facturacion;
-USE facturacion;
+USE railway;
 
 CREATE TABLE IF NOT EXISTS empresas (
   id_empresa INT AUTO_INCREMENT PRIMARY KEY,
