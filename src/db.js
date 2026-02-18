@@ -20,11 +20,19 @@ const poolOptions = connectionString
 
 const pool = new Pool(poolOptions)
 
+// Convert MySQL `?` placeholders to Postgres `$1`, `$2`, etc.
+function convertPlaceholders(sql) {
+  let counter = 0
+  return sql.replace(/\?/g, () => `$${++counter}`)
+}
+
 // Wrapper to return results in mysql2-like format [rows, fields]
 // This allows existing controllers to work without changes
 module.exports = {
   query: async (sql, params) => {
-    const result = await pool.query(sql, params)
+    // Convert ? placeholders to $1, $2, etc. for Postgres
+    const convertedSql = convertPlaceholders(sql)
+    const result = await pool.query(convertedSql, params)
     // Return [rows, fields] to match mysql2 destructuring in controllers
     return [result.rows, result.fields]
   },
