@@ -6,8 +6,8 @@ const PORT = process.env.PORT || 3000
 
 async function start() {
   try {
-    const connection = await db.getConnection()
-    connection.release()
+    const client = await db.connect()
+    client.release()
     console.log('Conexión a la base de datos establecida')
   } catch (err) {
     console.error('Error conectando a la base de datos:', err)

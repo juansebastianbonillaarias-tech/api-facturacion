@@ -1,21 +1,23 @@
-const mysql = require('mysql2/promise')
+const { Pool } = require('pg')
 require('dotenv').config()
 
-const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306
+// Prefer DATABASE_URL (Supabase). If not provided, fall back to individual vars.
+const connectionString = process.env.DATABASE_URL || null
 
-const poolConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port
-}
+const poolOptions = connectionString
+  ? {
+      connectionString,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    }
+  : {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    }
 
-// Optional SSL support for providers like PlanetScale
-if (process.env.DB_SSL === 'true') {
-  poolConfig.ssl = { rejectUnauthorized: true }
-}
-
-const pool = mysql.createPool(poolConfig)
+const pool = new Pool(poolOptions)
 
 module.exports = pool
