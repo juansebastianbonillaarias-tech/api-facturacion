@@ -1,95 +1,103 @@
-# Plataforma de Facturación Electrónica — Grupo 5
+# Plataforma de Facturación — API
 
-Este repositorio contiene la API RESTful de la plataforma de facturación electrónica (Node.js + Express + MySQL) desarrollada para el Taller Integrador.
+API RESTful en Node.js + Express. Esta versión usa PostgreSQL (soporta `DATABASE_URL` para providers como Supabase).
 
-Requisitos cubiertos:
-- Conexión a MySQL
-- CRUD para `empresas`, `clientes`, `facturas`
-- Endpoints relacionales (factura + cliente + detalle)
-- Filtros por query params en `GET /facturas`
-- Estructura mínima del proyecto y `.env`
-- Frontend simple en `src/diseño` que consume al menos 4 endpoints
+Base URL (ejemplo en producción):
 
-Archivos nuevos importantes:
-- `sql/schema.sql` — script SQL para crear la base de datos y tablas (incluye datos de ejemplo)
-- `src/test-endpoints.js` — script de prueba ampliado
+```
+https://api-facturacion-0b4m.onrender.com
+```
 
-Rutas principales
-- `GET /empresas` — listar empresas
-- `GET /empresas/:id` — obtener empresa
-- `POST /empresas` — crear empresa
-- `PUT /empresas/:id` — actualizar
+Resumen rápido
+- Endpoints para `empresas`, `clientes`, `facturas` y `/health`.
+- Soporta Postgres (Supabase) mediante `pg` y variable `DATABASE_URL`.
+
+Endpoints (HTTP)
+
+**Health**
+- `GET /health` — comprobación de estado
+
+**Empresas**
+- `GET /empresas` — listar todas
+- `GET /empresas/:id` — obtener por id
+- `POST /empresas` — crear (JSON body)
+- `PUT /empresas/:id` — actualizar (JSON body)
 - `DELETE /empresas/:id` — eliminar
 
-- `GET /clientes` — listar clientes
-- `GET /clientes/:id` — obtener cliente
-- `POST /clientes` — crear cliente
-- `PUT /clientes/:id` — actualizar
+**Clientes**
+- `GET /clientes` — listar todas
+- `GET /clientes/:id` — obtener por id
+- `POST /clientes` — crear (JSON body)
+- `PUT /clientes/:id` — actualizar (JSON body)
 - `DELETE /clientes/:id` — eliminar
 
-- `GET /facturas` — listar facturas (soporta query params `estado`, `id_empresa`, `desde`, `hasta`)
+**Facturas**
+- `GET /facturas` — listar (soporta query params `estado`, `id_empresa`, `desde`, `hasta`)
 - `GET /facturas/:id` — obtener factura básica
-- `GET /facturas/:id/detalle` — obtener factura con cliente, empresa y detalle (JOINs)
+- `GET /facturas/:id/detalle` — obtener factura + cliente + empresa + detalle
 - `GET /facturas/empresa/:id` — facturas por empresa
 - `GET /facturas/empresa/:id/total` — totales por empresa
-- `GET /facturas/mensual` — facturación mensual
-- `POST /facturas` — crear factura (con `detalles` array)
+- `GET /facturas/empresa/:id/mensual` — facturación mensual por empresa
+- `GET /facturas/mensual` — facturación mensual general
+- `POST /facturas` — crear factura (JSON body con `detalles` array)
+- `PUT /facturas/:id` — actualizar
+- `DELETE /facturas/:id` — eliminar
 
-Instalación y ejecución local
-1. Instalar dependencias:
+Ejemplos curl
 
+- Health:
+```
+curl https://api-facturacion-0b4m.onrender.com/health
+```
+- Listar empresas:
+```
+curl https://api-facturacion-0b4m.onrender.com/empresas
+```
+- Obtener empresa por id (ej: 1):
+```
+curl https://api-facturacion-0b4m.onrender.com/empresas/1
+```
+- Crear empresa (ejemplo):
+```
+curl -X POST https://api-facturacion-0b4m.onrender.com/empresas -H "Content-Type: application/json" -d '{"nombre":"ACME","nit":"123","direccion":"Calle 1","telefono":"555","email":"acme@example.com"}'
+```
+
+Variables de entorno
+- `DATABASE_URL` — (recomendado) cadena de conexión Postgres (ej: Supabase Pooler). Ej: `postgresql://postgres:PASS@host:6543/postgres?sslmode=require`
+- `PORT` — puerto (Render provee esto automáticamente)
+- `SKIP_DB_CHECK` — si `true`, el servidor no fallará si la DB no responde en arranque (útil para debugging)
+
+Ejecución local (con Postgres)
+
+1. Instala dependencias:
 ```bash
 npm install
 ```
-
-2. Crear la base de datos (usar MySQL local). Por ejemplo desde terminal MySQL:
-
-```sql
-SOURCE sql/schema.sql;
-```
-
-3. Configurar `.env` con credenciales MySQL (ya existe `.env` para desarrollo local con `DB_NAME=facturacion`)
-
-4. Iniciar servidor:
-
+2. Crea una base Postgres y ejecuta el SQL en `sql/schema.sql` (archivo adaptado a Postgres).
+3. Configura `.env` o exporta `DATABASE_URL` apuntando a la DB.
+4. Inicia:
 ```bash
 npm start
 ```
 
-5. Opcional: abrir el frontend simple en `src/diseño/index.html` (servirlo con un servidor estático o abrir el archivo en el navegador y asegurarse de que la API esté accesible en `http://localhost:3000`).
+Despliegue en Render (resumen rápido)
 
-Pruebas automatizadas rápidas
-```bash
-node src/test-endpoints.js
-```
+1. En Supabase: usa el **Pooler** y copia la connection string.
+2. En Render → Service → Environment:
+   - `DATABASE_URL` = (la connection string del Pooler de Supabase)
+   - (opcional) `PGSSLMODE=require` o añadir `?sslmode=require` en la URL
+3. Manual Deploy → `Deploy latest commit`.
+4. Revisar logs; usar `/health` para checks.
 
-Notas y recomendaciones
-- El archivo `sql/schema.sql` crea tablas y datos de ejemplo; ajustar credenciales antes de ejecutar.
-- Para despliegue en la nube, exportar variables de entorno y ejecutar en el servicio elegido.
+Notas para colaboradores
+- El código fue adaptado desde MySQL a Postgres: el wrapper en `src/db.js` convierte placeholders `?` a `$1..` y devuelve `[rows, fields]` para mantener compatibilidad con controladores existentes.
+- Los directorios de frontend y scripts de prueba se removieron para mantener el repo orientado a la API.
 
-Despliegue (opciones rápidas)
+Archivo SQL
+- `sql/schema.sql` contiene el esquema y puede ser usado en Supabase (Postgres).
 
-1) Deploy con Render (recomendado)
-- Crear una cuenta en https://render.com
-- Crear un "Web Service" y conectar el repositorio (GitHub/GitLab). Selecciona "Docker" como método de despliegue o usa el `Dockerfile` incluido.
-- Configura variables de entorno en Render: `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `PORT` (Render normalmente usa `PORT` dinámico, mantén `process.env.PORT`).
-- Añade un servicio de base de datos MySQL en Render o usa un proveedor externo y configura las credenciales.
+Contribuir
+- Haz forks, PR y describe claramente los cambios. Para cambios que afecten la DB, incluye migraciones o instrucciones.
 
-2) Deploy con Railway
-- Crear cuenta en https://railway.app
-- Desplegar desde GitHub siguiendo el asistente; añadir un plugin MySQL (Railway provee bases de datos administradas). Actualiza variables de entorno con la URL y credenciales que Railway ofrezca.
-
-3) Deploy con Heroku (método legacy)
-- Crear app en Heroku, conectar repo y usar buildpack de Docker o Node.js.
-- Añadir un add-on MySQL (ClearDB u otro proveedor) y configurar `CLEARDB_DATABASE_URL` o las variables `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` en las Config Vars.
-
-Recomendaciones al desplegar
-- Asegúrate de no subir el archivo `.env` con credenciales.
-- Usa el endpoint `/health` para configurar checks en el proveedor de nube.
-- Si tu proveedor no ofrece MySQL, considera usar una DB externa (Cloud SQL, PlanetScale, Amazon RDS) y configurar la conexión mediante variables de entorno.
-
-Archivos añadidos para despliegue
-- `Dockerfile` — contenedor para la API
-- `.dockerignore` — para el build de Docker
-- `src/app.js` — nuevo endpoint `/health` disponible
-
+Licencia
+- (añade tu licencia aquí)
