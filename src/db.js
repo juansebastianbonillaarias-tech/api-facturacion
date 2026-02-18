@@ -20,4 +20,17 @@ const poolOptions = connectionString
 
 const pool = new Pool(poolOptions)
 
-module.exports = pool
+// Wrapper to return results in mysql2-like format [rows, fields]
+// This allows existing controllers to work without changes
+module.exports = {
+  query: async (sql, params) => {
+    const result = await pool.query(sql, params)
+    // Return [rows, fields] to match mysql2 destructuring in controllers
+    return [result.rows, result.fields]
+  },
+  connect: async () => {
+    // Get a client from the pool to test connection
+    return await pool.connect()
+  },
+  pool
+}
